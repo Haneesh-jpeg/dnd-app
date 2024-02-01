@@ -1,62 +1,138 @@
 "use client"
-import Image from "next/image";
-import React, {useState} from "react";
-import DatePicker from "react-date-picker";
+import React, { useState } from 'react';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
-export default function Home() {
+const Home = () => {
+  const [todos, setTodos] = useState([]);
+  const [title, setTitle] = useState('');
+  const [date, setDate] = useState('');
+  const [description, setDescription] = useState('');
+  const [editIndex, setEditIndex] = useState(null);
 
-  const [dateValue, onDateChange] = useState(new Date());
-  const [TitlesArray, setTitlesArray] = useState([]);
-  const [Title, setTitle] = useState('');
+  const handleDragEnd = (result) => {
+    if (!result.destination) return;
 
+    const updatedTodos = [...todos];
+    const [reorderedItem] = updatedTodos.splice(result.source.index, 1);
+    updatedTodos.splice(result.destination.index, 0, reorderedItem);
 
-  const inputChange = (e) => {
-    setTitle(e.target.value);
+    setTodos(updatedTodos);
   };
 
-  const inputSubmit = (e) => {
-    e.preventDefault();
-    if (Title.trim()) {
-      setTitlesArray([...TitlesArray, Title]);
+  const handleSaveTodo = () => {
+    if (title && date && description) {
+      if (editIndex !== null) {
+        const updatedTodos = [...todos];
+        updatedTodos[editIndex] = { title, date, description };
+        setTodos(updatedTodos);
+      } else {
+        const newTodo = { title, date, description };
+        setTodos([...todos, newTodo]);
+      }
+
       setTitle('');
+      setDate('');
+      setDescription('');
     }
   };
 
-  const handleDelete = (index) => {
-    setTitlesArray(TitlesArray.filter((_, i) => i !== index));
+  const handleDeleteTodo = (index) => {
+    const updatedTodos = [...todos];
+    updatedTodos.splice(index, 1);
+    setTodos(updatedTodos);
   };
 
+  const handleEditTodo = (index) => {
+    const todoToEdit = todos[index];
+    setTitle(todoToEdit.title);
+    setDate(todoToEdit.date);
+    setDescription(todoToEdit.description);
+
+    setEditIndex(index);
+  };
 
   return (
-    <main className="p-0 m-0 relative flex flex-col justify-center">
-      <div className="bg-red-300 flex flex-col p-[5rem] rounded-2xl w-1/2 space-y-6">
-      <input className="w-[10rem] rounded-lg text-sm p-2.5" type="text" placeholder="Title" name="title" value={Title} onChange={inputChange} />
-      {/* date*/}
-       <div class="relative max-w-sm">
-       <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-         <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-        <path d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1h-3V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v2h20V4ZM0 18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0v10Zm5-8h10a1 1 0 0 1 0 2H5a1 1 0 0 1 0-2Z"/>
-      </svg>
+    <div className='flex flex-col self-center items-center justify-center'>
+    <div className='relative grid grid-cols-2 gap-4 place-content-evenly w-1/2 p-8 rounded-2xl bg-red-300 my-24'>
+      <div>
+        <input 
+        type="text" 
+        placeholder='Title' 
+        value={title} 
+        onChange={(e) => setTitle(e.target.value)}
+        className="w-[10rem] rounded-lg text-sm p-2.5 text-black"
+        />
       </div>
-        <input datepicker datepicker-autohide type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Select date" />
+      <div>
+        <input 
+        type="date" 
+        value={date} 
+        min={new Date().toISOString().split('T')[0]} 
+        onChange={(e) => setDate(e.target.value)} 
+        className='w-[12rem] rounded-lg text-sm p-2.5 text-black float-end'
+        />
       </div>
+      <div>
+        <input 
+        type="text" 
+        placeholder='Description' 
+        value={description} 
+        onChange={(e) => setDescription(e.target.value)} 
+        className="w-[20rem] rounded-lg text-sm p-2.5 text-black"
+        />
+      </div>
+      <button onClick={handleSaveTodo} className="w-1/5 h-10 rounded-lg text-sm bg-green-400"> {editIndex !== null ? 'Update' : 'Save'} </button>
+      </div>
+
+      
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable droppableId="todos">
+          {(provided) => (
+            <ul
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+              className="w-1/3 mt-6 space-y-2"
+            >
+              {todos.map((todo, index) => (
+                <Draggable key={index} draggableId={`todo-${index}`} index={index}>
+                  {(provided, snapshot) => (
+                    <li
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      className={`bg-blue-300 p-4 rounded-3xl border ${
+                        snapshot.isDragging && 'bg-gray'
+                      }`}
+                    >
+                      <span className="font-bold text-lg text-black ">{todo.title}</span>
+                      <span className="text-black ml-2 float-end">{todo.date}</span>
+                      <p className="text-sm mt-4 text-black ">{todo.description}</p>
+                      <div className="flex mt-6">
+                        <button
+                          onClick={() => handleEditTodo(index)}
+                          className="p-2.5 bg-blue-500 rounded-lg w-[5rem] mr-8 hover:underline"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTodo(index)}
+                          className="p-2.5 rounded-lg w-[5rem] bg-red-500 hover:underline "
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </li>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </ul>
+          )}
+        </Droppable>
+      </DragDropContext>
     
-
-      <input className="h-10 rounded-lg" name="Description" placeholder="Description" onChange={e => setDes(e.target.value)}/>
-      <button className="text-white bg-blue-300" onClick={inputSubmit}>Save</button>
-      </div>
-
-
-      <div className="relative flex flex-col my-12">
-      <ul className="p-11 bg-green-400 w-[40rem] rounded-lg justify-around my-8">
-        {TitlesArray.map((Title, index) => (
-          <li key={index} className="text-2xl my-12">
-            {Title}
-            <button className="text-lg bg-red-500 p-2.5 rounded-lg float-end" onClick={() => handleDelete(index)}>Delete</button>
-          </li>
-        ))}
-      </ul>
-  </div>
-    </main>
+    </div>
   );
-}
+};
+
+export default Home;
